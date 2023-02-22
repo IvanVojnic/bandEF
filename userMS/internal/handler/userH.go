@@ -21,9 +21,9 @@ func (h *Handler) AcceptFriendsRequest(ctx echo.Context) error {
 	err := ctx.Bind(&reqBody)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
-			"Error Bind json while creating book": err,
-			"book":                                reqBody,
-		}).Info("Bind json")
+			"Error Bind json while accepted": err,
+			"user sender":                    reqBody,
+		}).Errorf("Bind json %s", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "data not correct")
 	}
 	userID := ctx.Get("user_id").(uuid.UUID)
@@ -31,23 +31,23 @@ func (h *Handler) AcceptFriendsRequest(ctx echo.Context) error {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"Error while accepting request": err,
-		}).Info("Accept request")
-		return echo.NewHTTPError(http.StatusBadRequest, "book creating failed")
+		}).Errorf("Accept request, %s", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "accept failed")
 	}
 	return ctx.String(http.StatusOK, "request accepted")
 }
 
 func (h *Handler) GetFriends(ctx echo.Context) error {
 	userID := ctx.Get("user_id").(uuid.UUID)
-	rooms, err := h.userS.GetFriends(ctx.Request().Context(), userID)
+	friends, err := h.userS.GetFriends(ctx.Request().Context(), userID)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
-			"Error get rooms": err,
-			"rooms":           rooms,
-		}).Info("Get rooms request")
-		return echo.NewHTTPError(http.StatusBadRequest, "book updating failed")
+			"Error get friends": err,
+			"friends":           friends,
+		}).Errorf("Get friends request, %s", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "get friends failed")
 	}
-	return ctx.JSON(http.StatusOK, rooms)
+	return ctx.JSON(http.StatusOK, friends)
 }
 
 func (h *Handler) SendFriendsRequest(ctx echo.Context) error {
@@ -57,7 +57,7 @@ func (h *Handler) SendFriendsRequest(ctx echo.Context) error {
 		logrus.WithFields(logrus.Fields{
 			"Error Bind json while send request to be a friend to another user": errBind,
 			"reqBody": reqBody,
-		}).Info("Bind json")
+		}).Errorf("Bind json, %s", errBind)
 		return echo.NewHTTPError(http.StatusInternalServerError, "data not correct")
 	}
 	userID := ctx.Get("user_id").(uuid.UUID)
@@ -65,7 +65,7 @@ func (h *Handler) SendFriendsRequest(ctx echo.Context) error {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"Error while send friends request": err,
-		}).Info("send friends request")
+		}).Errorf("send friends request, %s", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "smth went wrong")
 	}
 	return ctx.String(http.StatusOK, "request sent")
@@ -77,7 +77,7 @@ func (h *Handler) FindUser(ctx echo.Context) error {
 	if errBind != nil {
 		logrus.WithFields(logrus.Fields{
 			"Error while send friends request": errBind,
-		}).Info("send friends request")
+		}).Errorf("send friends request, %s", errBind)
 		return echo.NewHTTPError(http.StatusBadRequest, "wrong data")
 	}
 	user, err := h.userS.FindUser(ctx.Request().Context(), reqBody.UserEmail)
@@ -85,7 +85,7 @@ func (h *Handler) FindUser(ctx echo.Context) error {
 		logrus.WithFields(logrus.Fields{
 			"Error find user": err,
 			"user":            user,
-		}).Info("GET find user")
+		}).Errorf("GET find user, %s", err)
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
 	return ctx.JSON(http.StatusOK, user)
@@ -98,7 +98,7 @@ func (h *Handler) GetRequest(ctx echo.Context) error {
 		logrus.WithFields(logrus.Fields{
 			"Error get users who sent request to be a friends": err,
 			"users": users,
-		}).Info("GET users request")
+		}).Errorf("GET users request, %s", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "cannot get users")
 	}
 	return ctx.JSON(http.StatusOK, users)
