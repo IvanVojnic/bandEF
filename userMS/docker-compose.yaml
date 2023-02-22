@@ -1,0 +1,51 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:latest
+    user: postgres
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      #volumes:
+      #- db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - default
+  flyway:
+    image: flyway/flyway
+    # postgres url schema: jdbc:postgresql://host:port/database
+    command: -url=jdbc:postgresql://postgres:5432/postgres -user=postgres -password=postgres -locations=filesystem:/flyway/sql -connectRetries=10  migrate
+    volumes:
+      - ${PWD}/migrations/sql:/flyway/sql
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    networks:
+      - default
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vojnic/efpractice2:psql2
+    depends_on:
+      - postgres
+      - flyway
+    ports:
+      - "3000:40000"
+    environment:
+      - pUrl=postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+      - DB=postgres
+      - PASSWORD=postgres
+      - USER=postgres
+      - PORT=5432
+      - mUrl=mongodb://mongo:mongo@localhost:27017
+    networks:
+      - default
