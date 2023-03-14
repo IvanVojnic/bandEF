@@ -1,0 +1,98 @@
+version: "3.9"
+services:
+  postgres_user:
+    image: postgres:latest
+    user: postgres
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - default
+  flyway_user:
+    image: flyway/flyway
+    command: -url=jdbc:postgresql://postgres_user:5432/postgres -user=postgres -password=postgres -locations=filesystem:/flyway/sql -connectRetries=10  migrate
+    volumes:
+      - ${PWD}/userMS/migrations/sql:/flyway/sql
+    links:
+      - postgres_user
+    depends_on:
+      - postgres_user
+    networks:
+      - default
+  app_user:
+    container_name: user
+    build: ./userMS
+    image: vojnic/user:userMS
+    depends_on:
+      postgres_user:
+        condition: service_healthy
+    environment:
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=postgres_user
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "8000:8000"
+    networks:
+      - default
+  app_cmd:
+    container_name: cmd
+    build: ./cmdMS
+    image: vojnic/cmd:cmdMS
+    ports:
+      - "40000:40000"
+    environment:
+      - PORT=8000
+    networks:
+      - default
+  postgres_room:
+    image: postgres:latest
+    user: postgres
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5234:5432"
+    networks:
+      - default
+  flyway_room:
+    image: flyway/flyway
+    command: -url=jdbc:postgresql://postgres_room:5432/postgres -user=postgres -password=postgres -locations=filesystem:/flyway/sql -connectRetries=10  migrate
+    volumes:
+      - ${PWD}/RoomMS/migrations/sql:/flyway/sql
+    links:
+      - postgres_room
+    depends_on:
+      - postgres_room
+    networks:
+      - default
+  app_room:
+    container_name: room
+    build:
+      context: ./RoomMS
+      dockerfile: Dockerfile
+    image: vojnic/room:roomMS
+    depends_on:
+      - postgres_room
+      - flyway_room
+    environment:
+      - pUrl=postgres://postgres:postgres@postgres_room:5432/postgres?sslmode=disable
+    ports:
+      - "9000:9000"
+    networks:
+      - default
