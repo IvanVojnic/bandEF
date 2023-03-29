@@ -88,8 +88,8 @@ services:
       dockerfile: Dockerfile
     image: vojnic/room:roomMS
     depends_on:
-      - postgres_room
-      - flyway_room
+      postgres_room:
+        condition: service_healthy
     environment:
       - pUrl=postgres://postgres:postgres@postgres_room:5432/postgres?sslmode=disable
     ports:
@@ -129,8 +129,8 @@ services:
       dockerfile: Dockerfile
     image: vojnic/notif:notifMS
     depends_on:
-      - postgres_notify
-      - flyway_notify
+      postgres_notify:
+        condition: service_healthy
     environment:
       - pUrl=postgres://postgres:postgres@postgres_notify:5432/postgres?sslmode=disable
     ports:
